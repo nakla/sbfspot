@@ -74,6 +74,9 @@ RUN addgroup -g $gid -S $group && adduser -S -D -G $group -H -u $uid $user
 RUN chmod g+w /var/log \
       && chgrp $group /var/log
       
+RUN chmod u+x /start.sh \
+      && chown $user:$group /start.sh
+      
 USER $user
 
 ENTRYPOINT ["/start.sh"]
