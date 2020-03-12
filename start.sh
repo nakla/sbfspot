@@ -289,7 +289,7 @@ checkStorageType() {
 
 checkNoServiceSelected() {
     if ( [ -z "$ENABLE_SBFSPOT" ] || [ $ENABLE_SBFSPOT -eq 0 ] ) && ( [ -z "$ENABLE_SBFSPOT_UPLOAD" ] || [ $ENABLE_SBFSPOT_UPLOAD -eq 0 ] ); then
-        if ( [ $INIT_DB -ne 1 ] ); then
+        if ( [ -n "$INIT_DB" ] && [ $INIT_DB -ne 1 ] ); then
             echo "Warning: Neither SBFspot nor SBFspotUploadDaemon were enabled"
             echo "Enable at least one by setting ENABLE_SBFSPOT or ENABLE_SBFSPOT_UPLOAD environment variable to 1"
             exit 1
@@ -314,7 +314,7 @@ selectSBFspotBinary
 selectSBFspotUploadBinary
 
 # initialize Database
-if [ $INIT_DB -eq 1 ]; then
+if [ -n "$INIT_DB" ] && [ $INIT_DB -eq 1 ]; then
     initDatabase
 else
     if [ -n "$DB_ROOT_USER" ] || [ -n "$DB_ROOT_PW" ]; then
