@@ -348,7 +348,7 @@ while [ TRUE ]; do
             if [ `date +%u` -eq 7 ];then   # sunday
                 expr `date +%W`
             else                           # all other days
-                echo ";"
+                date +%a
             fi
         else
             echo -n "."
