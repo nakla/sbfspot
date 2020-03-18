@@ -345,10 +345,10 @@ while [ TRUE ]; do
     if echo $sbfspot_options | grep -q "\-q"; then
         DELTA=`expr 60 - $SBFSPOT_INTERVAL / 60`
         if [ `date +%H` -eq 23 ] && [ `date +%M` -ge $DELTA ];then   # last entry of a day
-            if [ `date +%u` -eq 0 ];then   # sunday
-                expr `date +%U`
+            if [ `date +%u` -eq 7 ];then   # sunday
+                expr `date +%W`
             else                           # all other days
-                echo -n ";"
+                echo ";"
             fi
         else
             echo -n "."
