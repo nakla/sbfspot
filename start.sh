@@ -6,6 +6,7 @@ datadir=/var/sbfspot
 sbfspotbinary=""
 sbfspotuploadbinary=""
 sbfspot_cfg_file=""
+sbfspot_upload_cfg_file=""
 sbfspot_options=""
 
 getConfigValue() {
@@ -40,7 +41,40 @@ readConfig() {
     sbfspot_cfg_file=$( cat $confdir/SBFspot.cfg | dos2unix -u )
 }
 
+getUploadConfigValue() {
+    key=$1
+    echo "$sbfspot_upload_cfg_file" | grep -e "^$key=" | cut -f 2 -d "=" | sed 's/[ 	]*$//' # search for key, get value, delete invisible chars at the end
+}
+
+setUploadConfigValue() {
+    key=$1
+    value=$2
+    temp_value=`getUploadConfigValue $key`
+    if [ -n "$temp_value" ]; then   # key found, so update new value
+        echo "$sbfspot_upload_cfg_file" | sed "/^$key=.*/c $key=$value" > $confdir/SBFspotUpload.cfg
+    else
+        temp_value=`getUploadConfigValue "#$key"`  # search for inactive key
+        if [ -n "$temp_value" ]; then  # append key=value after the first match
+            echo "$sbfspot_upload_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $confdir/SBFspotUpload.cfg
+        else
+            temp_value=`getUploadConfigValue "# $key"`   # no inactive key found, test again with space after hashtag
+            if [ -n "$temp_value" ]; then  # append key=value after the first match
+                echo "$sbfspot_upload_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $confdir/SBFspotUpload.cfg
+            else
+                echo "Cannot find the option \"$key\" in SBFspotUpload.cfg. Appending the option at the end of the file."
+                echo "$sbfspot_upload_cfg_file" | sed "\$a $key=$value" > $confdir/SBFspotUpload.cfg
+            fi
+        fi
+    fi
+    readUploadConfig
+}
+
+readUploadConfig() {
+    sbfspot_upload_cfg_file=$( cat $confdir/SBFspotUpload.cfg | dos2unix -u )
+}
+
 checkSBFConfig() {
+    ERROR_FLAG=0
 	if `mount | grep -q -e "$confdir "`; then
         if [ -r $confdir/SBFspot.cfg ]; then
             readConfig
@@ -50,10 +84,10 @@ checkSBFConfig() {
                         setConfigValue "CSV_Export" "1"
                         echo "Wrong CSV_Export value in SBFspot.cfg. I change it to 1."
                     else
-                        echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot` or Group with ID `id -g sbfspot`."
+                        echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot`."
                         echo "Please change file permissions of SBFspot.cfg or ensure, that the \"CSV_Export\""
                         echo "value is 1"
-                        exit 1
+                        ERROR_FLAG=1
                     fi
                 fi
             fi
@@ -72,10 +106,10 @@ checkSBFConfig() {
                             echo "Wrong OutputPathEvents value in SBFspot.cfg. I change it to \"$datadir/%Y/Events\""
                         fi
                     else
-                        echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot` or Group with ID `id -g sbfspot`."
+                        echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot`."
                         echo "Please change file permissions of SBFspot.cfg or ensure, that the \"OutputPath\" and \"OutputPathEvents\" Options"
                         echo "point to the Directory $datadir/..."
-                        exit 1
+                        ERROR_FLAG=1
                     fi
                 else
                     echo "$datadir is not mapped to a directory outside the container => csv files would not be persistant."
@@ -85,7 +119,7 @@ checkSBFConfig() {
                 
                 # check if data directory is writeable
                 if [ ! -w $datadir ]; then
-                    echo "Mapped Data directory is not writeable for user with ID `id -u sbfspot` or group with ID `id -g sbfspot`."
+                    echo "Mapped Data directory is not writeable for user with ID `id -u sbfspot`."
                     echo "Please change file permissions accordingly and restart the container."
                     exit 1
                 fi
@@ -99,8 +133,45 @@ checkSBFConfig() {
                     echo "Warning: Please configure the \"MQTT_Host\" value in SBFspot.cfg."
                 fi
             fi
+            if [ "$DB_STORAGE" = "sqlite" ]; then
+                if `mount | grep -q -e "$datadir "`; then # check if data dir is mapped into the container 
+                    if [ ! -e $datadir/sbfspot.db ]; then # check if database file exists
+                        if [ -z "$INIT_DB" ] || [ $INIT_DB -ne 1 ]; then
+                            echo "SQLite database file under \"$datadir/sbfspot.db\" does not exist. Please initialize the database."
+                            exit 1
+                        fi
+                    else
+                        if [ ! -w $datadir/sbfspot.db ]; then
+                            echo "SQLite database file under \"$datadir/sbfspot.db\" is not writeable for user with ID `id -u sbfspot`."
+                            echo "Please change file permissions accordingly and restart the container."
+                            ERROR_FLAG=1
+                        fi
+                        if [ ! -r $datadir/sbfspot.db ]; then
+                            echo "SQLite database file under \"$datadir/sbfspot.db\" is not readable for user with ID `id -u sbfspot`."
+                            echo "Please change file permissions accordingly and restart the container."
+                            ERROR_FLAG=1
+                        fi
+                    fi
+                else
+                    echo "$datadir is not mapped to a directory outside the container => database would not be persistant."
+                    echo "Please map the directory and restart the container."
+                    exit 1
+                fi
+                
+                if [ -w $confdir/SBFspot.cfg ]; then # check if SQLite DB is correctly configured in SBFspot.cfg
+                    if ! `getConfigValue SQL_Database | grep -q -e "^$datadir/sbfspot.db"`; then    
+                        setConfigValue "SQL_Database" "$datadir/sbfspot.db"
+                        echo "Wrong SQL_Database value in SBFspot.cfg. I change it to \"$datadir/sbfspot.db\""
+                    fi
+                else
+                    echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot`."
+                    echo "Please change file permissions of SBFspot.cfg or ensure, that the \"SQL_Database\" option"
+                    echo "points to the file $datadir/sbfspot.db"
+                    ERROR_FLAG=1
+                fi
+            fi
         else
-            echo "$confdir/SBFspot.cfg is not readable by user with ID `id -u sbfspot` or group with ID `id -g sbfspot`."
+            echo "$confdir/SBFspot.cfg is not readable by user with ID `id -u sbfspot`."
             echo "Please change file permissions accordingly and restart the container."
             exit 1
         fi
@@ -109,12 +180,46 @@ checkSBFConfig() {
 		echo "Please map the directory and restart the container."
 		exit 1
     fi
+    
+    if [ $ERROR_FLAG -eq 1 ]; then
+        echo "Please configure the listed value(s) and restart the container."
+        exit 1
+    fi
 }
  
 checkSBFUploadConfig() {
+    ERROR_FLAG=0
 	if `mount | grep -q -e "$confdir "`; then
-        if [ ! -r $confdir/SBFspotUpload.cfg ]; then
-            echo "$confdir/SBFspotUpload.cfg is not readable by user with ID `id -u sbfspot` or group with ID `id -g sbfspot.`"
+        if [ -r $confdir/SBFspotUpload.cfg ]; then
+            readUploadConfig
+            tempValue=`getUploadConfigValue PVoutput_SID`
+            if [ -z $tempValue ];then
+                echo "Please set the \"PVoutput_SID\" option in \"SBFspotUpload.cfg\"."
+                echo "Otherwise the production data can't be uploaded to PVoutput."
+                ERROR_FLAG=1
+            fi
+            tempValue=`getUploadConfigValue PVoutput_Key`
+            if [ -z $tempValue ];then
+                echo "Please set the \"PVoutput_Key\" option in \"SBFspotUpload.cfg\"."
+                echo "Otherwise the production data can't be uploaded to PVoutput."
+                ERROR_FLAG=1
+            fi
+            
+            if [ "$DB_STORAGE" = "sqlite" ]; then # check if SQLite DB is correctly configured in SBFspot.cfg
+                if ! `getUploadConfigValue SQL_Database | grep -q -e "^$datadir/sbfspot.db"`; then
+                    if [ -w $confdir/SBFspotUpload.cfg ]; then
+                        setUploadConfigValue "SQL_Database" "$datadir/sbfspot.db"
+                        echo "Wrong SQL_Database value in SBFspotUpload.cfg. I change it to \"$datadir/sbfspot.db\""
+                    else
+                        echo "$confdir/SBFspotUpload.cfg is not writeable by User with ID `id -u sbfspot`."
+                        echo "Please change file permissions of SBFspotUpload.cfg or ensure, that the \"SQL_Database\" option"
+                        echo "points to the file $datadir/sbfspot.db"
+                        ERROR_FLAG=1
+                    fi
+                fi
+            fi
+        else
+            echo "$confdir/SBFspotUpload.cfg is not readable by user with ID `id -u sbfspot`."
             echo "Please change file permissions accordingly and restart the container."
             exit 1
         fi
@@ -122,6 +227,11 @@ checkSBFUploadConfig() {
         echo "$confdir is not mapped to a directory outside the container => Config file can't be read."
 		echo "Please map the directory and restart the container."
 		exit 1
+    fi
+    
+    if [ $ERROR_FLAG -eq 1 ]; then
+        echo "Please configure the listed value(s) and restart the container."
+        exit 1
     fi
 }
 
@@ -144,11 +254,11 @@ setupSBFspotOptions() {
 }
 
 initDatabase() {
-    if [ "$STORAGE_TYPE" = "sqlite" ]; then
+    if [ "$DB_STORAGE" = "sqlite" ]; then
         if `mount | grep -q -e "$datadir "`; then
             # check if data directory is writeable
 			if [ ! -w $datadir ]; then
-				echo "Mapped Data directory is not writeable for user with ID `id -u sbfspot` or group with ID `id -g sbfspot`."
+				echo "Mapped Data directory is not writeable for user with ID `id -u sbfspot`."
 				echo "Please change file permissions accordingly and restart the container."
 				exit 1
 			fi
@@ -158,7 +268,8 @@ initDatabase() {
             echo "Please map the directory and restart the container."
             exit 1
         fi
-    elif [ "$STORAGE_TYPE" = "mysql" ] || [ "$STORAGE_TYPE" = "mariadb" ]; then
+        exit 0
+    elif [ "$DB_STORAGE" = "mysql" ] || [ "$DB_STORAGE" = "mariadb" ]; then
         HOST=`getConfigValue SQL_Hostname`
         DB=`getConfigValue SQL_Database`
         USER=`getConfigValue SQL_Username`
@@ -190,7 +301,7 @@ initDatabase() {
             ERROR_FLAG=1
             echo "Add \"DB_ROOT_PW\" Environment Variable with appropriate value to your docker run command."
         fi
-        if [ $ERROR_FLAG = 1 ]; then
+        if [ $ERROR_FLAG -eq 1 ]; then
             echo "Please configure the listed value(s) and restart the container."
             exit 1
         fi
@@ -224,24 +335,24 @@ initDatabase() {
             echo "$SQL_GRANT2"
         fi
 	    exit 0
-    elif [ "$STORAGE_TYPE" != "sqlite" ] && [ "$STORAGE_TYPE" != "mysql" ] && [ "$STORAGE_TYPE" != "mariadb" ]; then
-        echo "storage type \"$STORAGE_TYPE\" not available. Options: sqlite | mysql | mariadb"
+    elif [ "$DB_STORAGE" != "sqlite" ] && [ "$DB_STORAGE" != "mysql" ] && [ "$DB_STORAGE" != "mariadb" ]; then
+        echo "storage type \"$DB_STORAGE\" not available. Options: sqlite | mysql | mariadb"
         exit 1
     fi
 }
 
 selectSBFspotBinary() {
     if [ -n "$ENABLE_SBFSPOT" ] && [ $ENABLE_SBFSPOT -ne 0 ]; then
-        if [ -z "$STORAGE_TYPE" ]; then
+        if [ -z "$DB_STORAGE" ]; then
             sbfspotbinary=SBFspot_nosql
-        elif [ "$STORAGE_TYPE" = "sqlite" ]; then
+        elif [ "$DB_STORAGE" = "sqlite" ]; then
             sbfspotbinary=SBFspot_sqlite
-        elif [ "$STORAGE_TYPE" = "mysql" ]; then
+        elif [ "$DB_STORAGE" = "mysql" ]; then
             sbfspotbinary=SBFspot_mysql
-        elif [ "$STORAGE_TYPE" = "mariadb" ]; then
+        elif [ "$DB_STORAGE" = "mariadb" ]; then
             sbfspotbinary=SBFspot_mariadb
         else
-            echo "storage type \"$STORAGE_TYPE\" not available. Options: sqlite | mysql | mariadb"
+            echo "storage type \"$DB_STORAGE\" not available. Options: sqlite | mysql | mariadb"
             exit 1
         fi
         
@@ -251,17 +362,14 @@ selectSBFspotBinary() {
 
 selectSBFspotUploadBinary() {
     if [ -n "$ENABLE_SBFSPOT_UPLOAD" ] && [ $ENABLE_SBFSPOT_UPLOAD -ne 0 ]; then
-        if [ "$STORAGE_TYPE" = "sqlite" ]; then
+        if [ "$DB_STORAGE" = "sqlite" ]; then
             sbfspotuploadbinary=SBFspotUploadDaemon_sqlite
-            echo "SBFspotUploadDaemon for sqlite storage selected"
-        elif [ "$STORAGE_TYPE" = "mysql" ]; then
+        elif [ "$DB_STORAGE" = "mysql" ]; then
             sbfspotuploadbinary=SBFspotUploadDaemon_mysql
-            echo "SBFspotUploadDaemon for mysql storage selected"
-        elif [ "$STORAGE_TYPE" = "mariadb" ]; then
+        elif [ "$DB_STORAGE" = "mariadb" ]; then
             sbfspotuploadbinary=SBFspotUploadDaemon_mariadb
-            echo "SBFspotUploadDaemon for mariadb storage selected"
         else
-            echo "storage type \"$STORAGE_TYPE\" not available for SBFspotUploadDaemon. Options: sqlite | mysql | mariadb"
+            echo "storage type \"$DB_STORAGE\" not available for SBFspotUploadDaemon. Options: sqlite | mysql | mariadb"
             exit 1
         fi
         
@@ -281,8 +389,8 @@ copyDefaultConf() {
 }
 
 checkStorageType() {
-    if [ -z "$STORAGE_TYPE" ] && ( [ -z "$CSV_STORAGE" ] || [ $CSV_STORAGE -ne 1 ] ) && ( [ -z "$MQTT_ENABLE" ] || [ $MQTT_ENABLE -ne 1 ] ); then
-        echo "Error, no Data Output is selected. Please configure at least one of the options: STORAGE_TYPE, CSV_STORAGE or MQTT_ENABLE"
+    if [ -z "$DB_STORAGE" ] && ( [ -z "$CSV_STORAGE" ] || [ $CSV_STORAGE -ne 1 ] ) && ( [ -z "$MQTT_ENABLE" ] || [ $MQTT_ENABLE -ne 1 ] ); then
+        echo "Error, no Data Output is selected. Please configure at least one of the options: DB_STORAGE, CSV_STORAGE or MQTT_ENABLE"
         exit 1
     fi
 }

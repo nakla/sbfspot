@@ -119,29 +119,29 @@ Examples for using the container:
 Initialize a new mysql Database
 
 ```
-docker run -e "STORAGE_TYPE=mysql" -e "INIT_DB=1" -e "DB_ROOT_USER=root" -e "DB_ROOT_PW=secret" 
-   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot sbfspot:latest
+docker run -e "DB_STORAGE=mysql" -e "INIT_DB=1" -e "DB_ROOT_USER=root" -e "DB_ROOT_PW=secret" 
+   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot nakla/sbfspot:latest
 ```
 
 Start only SBFspot and store inverters data in a mariadb Database configured in SBFspot.conf
 
 ```
-docker run --network host -e "STORAGE_TYPE=mariadb" -e "ENABLE_SBFSPOT=1" -e "TZ=Europe/Berlin" 
-   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot sbfspot:latest
+docker run --network host -e "DB_STORAGE=mariadb" -e "ENABLE_SBFSPOT=1" -e "TZ=Europe/Berlin" 
+   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot nakla/sbfspot:latest
 ```
 
 Start only SBFspot and store inverters data in csv files on the host in the directory /path/to/your/data/dir/on/host
 
 ```
 docker run --network host -e "CSV_STORAGE=1" -e "ENABLE_SBFSPOT=1" -e "TZ=Europe/Berlin" 
-   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot sbfspot:latest
+   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot nakla/sbfspot:latest
 ```
 
 Start SBFspot, store inverters data in a mysql Database and upload inverters Data to pvoutput.org
 
 ```
-docker run --network host -e "STORAGE_TYPE=mysql" -e "ENABLE_SBFSPOT=1" -e "ENABLE_SBFSPOT_UPLOAD=1" 
-   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot sbfspot:latest
+docker run --network host -e "DB_STORAGE=mysql" -e "ENABLE_SBFSPOT=1" -e "ENABLE_SBFSPOT_UPLOAD=1" 
+   -v /path/to/your/config/dir/on/host:/etc/sbfspot -v /path/to/your/data/dir/on/host:/var/sbfspot nakla/sbfspot:latest
 
 ```
 
