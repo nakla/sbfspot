@@ -1,0 +1,25 @@
+image: nakla/sbfspot_rpi:latest
+manifests:
+  -
+    image: nakla/sbfspot_rpi:latest
+    platform:
+      architecture: amd64
+      os: linux
+  - 
+    image: nakla/sbfspot_rpi:latest-arm64v8
+    platform:
+      architecture: arm64
+      os: linux
+      variant: v8
+  - 
+    image: nakla/sbfspot_rpi:latest-arm32v7
+    platform:
+      architecture: arm
+      os: linux
+      variant: v7
+  - 
+    image: nakla/sbfspot_rpi:latest-arm32v6
+    platform:
+      architecture: arm
+      os: linux
+      variant: v6
