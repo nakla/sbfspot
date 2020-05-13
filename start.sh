@@ -439,22 +439,23 @@ fi
 # add Options to SBFspot cmdline
 setupSBFspotOptions
 
+if [ $SBFSPOT_INTERVAL -lt 60 ]; then
+    SBFSPOT_INTERVAL=60;
+    echo "SBFSPOT_INTERVAL is very short. It will be set to 60 seconds."
+fi
+
 while [ TRUE ]; do
-	if [ -n "$sbfspotbinary" ]; then
-		$homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg
-	fi
-    
-	if [ $SBFSPOT_INTERVAL -lt 60 ]; then
-        SBFSPOT_INTERVAL=60;
-        echo "SBFSPOT_INTERVAL is very short. It will be set to 60 seconds."
+    if [ -n "$sbfspotbinary" ]; then
+	$homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg
     fi
-    
+
     # if QUIET SBFspot Option is set, produce less output
     if echo $sbfspot_options | grep -q "\-q"; then
         DELTA=`expr 60 - $SBFSPOT_INTERVAL / 60`
         if [ `date +%H` -eq 23 ] && [ `date +%M` -ge $DELTA ];then   # last entry of a day
             if [ `date +%u` -eq 7 ];then   # sunday
-                expr `date +%W`
+		echo -n "week "
+                date +%W\ %Y
             else                           # all other days
                 date +%a
             fi
@@ -462,6 +463,7 @@ while [ TRUE ]; do
             echo -n "."
         fi
     else
+	date
         echo "Sleeping $SBFSPOT_INTERVAL seconds."
     fi
 	sleep $SBFSPOT_INTERVAL
