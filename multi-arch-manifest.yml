@@ -1,7 +1,7 @@
 image: nakla/sbfspot:latest
 manifests:
   -
-    image: nakla/sbfspot:latest
+    image: nakla/sbfspot:latest-amd64
     platform:
       architecture: amd64
       os: linux
