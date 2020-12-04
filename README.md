@@ -20,7 +20,7 @@ The bad about this is, that every host-device is also accessible in the containe
 * /etc/sbfspot => directory for your configuration files
 * /var/sbfspot => data directory (for storing csv files or sqlite database file)
 
-The mapped host volumes should be read- and writeable for user with ID 5000 or group with ID 5000.
+The mapped host volumes should be read- and writeable for user with ID 5000 or group with ID 5000, the config files also.
 
 # Environment variables
 ## General
