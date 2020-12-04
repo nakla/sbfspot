@@ -401,6 +401,8 @@ checkNoServiceSelected() {
             echo "Warning: Neither SBFspot nor SBFspotUploadDaemon were enabled"
             echo "Enable at least one by setting ENABLE_SBFSPOT or ENABLE_SBFSPOT_UPLOAD environment variable to 1"
             exit 1
+        else
+            checkSBFConfig   // if no service but $INIT_DB is selected, checkSBFConfig has to be called
         fi
     fi
 }
