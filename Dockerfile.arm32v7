@@ -8,7 +8,8 @@ RUN apk add curl && curl -L ${QEMU_URL} | tar zxvf - -C . --strip-components 1
 
 
 # buildtime container
-FROM arm32v7/alpine:latest AS builder
+#FROM arm32v7/alpine:latest AS builder  // problems with latest version
+FROM arm32v7/alpine:3.12.7 AS builder
 
 # Add QEMU
 COPY --from=qemu qemu-arm-static /usr/bin
