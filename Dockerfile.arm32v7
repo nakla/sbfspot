@@ -8,8 +8,7 @@ RUN apk add curl && curl -L ${QEMU_URL} | tar zxvf - -C . --strip-components 1
 
 
 # buildtime container
-#FROM arm32v7/alpine:latest AS builder  // problems with latest version
-FROM arm32v7/alpine:3.12.7 AS builder
+FROM arm32v7/alpine:latest AS builder
 
 # Add QEMU
 COPY --from=qemu qemu-arm-static /usr/bin
@@ -20,7 +19,8 @@ ARG sbfspot_home=/usr/local/bin/sbfspot.3
 RUN apk --no-cache add git make g++ boost-dev bluez-dev sqlite-dev mariadb-dev
 
 WORKDIR /tmp
-RUN git clone https://github.com/SBFspot/SBFspot.git
+RUN git clone https://github.com/SBFspot/SBFspot.git \
+      && git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
 WORKDIR /tmp/SBFspot/SBFspot
 RUN sed -i s-\#ifdef\ linux-\#ifdef\ linux\\n\#include\ \<sys\/select.h\>- Ethernet.h
