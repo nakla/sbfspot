@@ -155,8 +155,8 @@ services:
         image: nakla/sbfspot:latest
         network_mode: host
         volumes:
-            - ./etc:/etc/sbfspot
-            - ./data:/var/sbfspot
+            - ~/sbfspot/etc:/etc/sbfspot
+            - ~/sbfspot/data:/var/sbfspot
         environment:
             TZ: Europe/Berlin
             ENABLE_SBFSPOT: 1
