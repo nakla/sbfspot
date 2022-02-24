@@ -448,7 +448,7 @@ fi
 
 while [ TRUE ]; do
     if [ -n "$sbfspotbinary" ]; then
-	$homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg
+        timeout 60 $homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg
     fi
 
     # if QUIET SBFspot Option is set, produce less output
