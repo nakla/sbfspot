@@ -33,7 +33,8 @@ The mapped host volumes should be read- and writeable for user with ID 5000 or g
 * **1** => enable SBFspotUploadDaemon to upload your production data to PVoutput
 
 ### SBFSPOT_INTERVAL
-* **seconds** => define an interval at which SBFspot should poll your inverter(s) - default 600
+* **seconds** => define an interval at which SBFspot should poll your inverter(s) - default 600, minimum 60
+  
 
 ### TZ
 * **timezone** e.g. Europe/Berlin => Provide your local timezone
