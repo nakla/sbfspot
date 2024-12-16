@@ -470,8 +470,8 @@ while [ TRUE ]; do
       		fi
       	    fi
 	   
-	    if [ $runtime -ge $MAX_RUNTIME ]; then
-        	echo "SBFspot has been running for longer than $MAX_RUNTIME seconds. Terminating SBFspot."
+	    if [ $runtime -ge $MAX_SBFSPOT_RUNTIME ]; then
+        	echo "SBFspot has been running for longer than $MAX_SBFSPOT_RUNTIME seconds. Terminating SBFspot."
         	break
     	    fi
     	    sleep 10   # checking every 10 seconds if SBFspot is still running
