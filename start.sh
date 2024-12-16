@@ -17,15 +17,15 @@ getConfigValue() {
 setConfigValue() {
     key=$1
     value=$2
-    temp_value=`getConfigValue $key`
+    temp_value="$(getConfigValue "$key")"
     if [ -n "$temp_value" ]; then   # key found, so update new value
         echo "$sbfspot_cfg_file" | sed "/^$key=.*/c $key=$value" > $confdir/SBFspot.cfg
     else
-        temp_value=`getConfigValue "#$key"`  # search for inactive key
+        temp_value="$(getConfigValue "#$key")"  # search for inactive key
         if [ -n "$temp_value" ]; then  # append key=value after the first match
             echo "$sbfspot_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $confdir/SBFspot.cfg
         else
-            temp_value=`getConfigValue "# $key"`   # no inactive key found, test again with space after hashtag
+            temp_value="$(getConfigValue "# $key")"   # no inactive key found, test again with space after hashtag
             if [ -n "$temp_value" ]; then  # append key=value after the first match
                 echo "$sbfspot_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $confdir/SBFspot.cfg
             else
@@ -49,15 +49,15 @@ getUploadConfigValue() {
 setUploadConfigValue() {
     key=$1
     value=$2
-    temp_value=`getUploadConfigValue $key`
+    temp_value="$(getUploadConfigValue "$key")"
     if [ -n "$temp_value" ]; then   # key found, so update new value
         echo "$sbfspot_upload_cfg_file" | sed "/^$key=.*/c $key=$value" > $confdir/SBFspotUpload.cfg
     else
-        temp_value=`getUploadConfigValue "#$key"`  # search for inactive key
+        temp_value="$(getUploadConfigValue "#$key")"  # search for inactive key
         if [ -n "$temp_value" ]; then  # append key=value after the first match
             echo "$sbfspot_upload_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $confdir/SBFspotUpload.cfg
         else
-            temp_value=`getUploadConfigValue "# $key"`   # no inactive key found, test again with space after hashtag
+            temp_value="$(getUploadConfigValue "# $key")"   # no inactive key found, test again with space after hashtag
             if [ -n "$temp_value" ]; then  # append key=value after the first match
                 echo "$sbfspot_upload_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $confdir/SBFspotUpload.cfg
             else
@@ -270,11 +270,11 @@ initDatabase() {
         fi
         exit 0
     elif [ "$DB_STORAGE" = "mysql" ] || [ "$DB_STORAGE" = "mariadb" ]; then
-        HOST=`getConfigValue SQL_Hostname`
-        DB=`getConfigValue SQL_Database`
-        USER=`getConfigValue SQL_Username`
-        PW=`getConfigValue SQL_Password`
-        LOCAL_IP=`ip ro show | grep 'docker0\|eth0' | awk '{print $(NF)}'`
+        HOST=$(getConfigValue SQL_Hostname)
+        DB=$(getConfigValue SQL_Database)
+        USER=$(getConfigValue SQL_Username)
+        PW=$(getConfigValue SQL_Password)
+        LOCAL_IP=$(ip ro show | grep 'docker0\|eth0' | awk '{print $(NF)}')
         
         ERROR_FLAG=0
         if [ -z "$HOST" ]; then
@@ -441,9 +441,14 @@ fi
 # add Options to SBFspot cmdline
 setupSBFspotOptions
 
-if [ $SBFSPOT_INTERVAL -lt 60 ]; then
-    SBFSPOT_INTERVAL=60;
-    echo "SBFSPOT_INTERVAL is very short. It will be set to 60 seconds."
+if [ $SBFSPOT_INTERVAL -lt 30 ]; then
+    SBFSPOT_INTERVAL=30;
+    echo "SBFSPOT_INTERVAL is very short. It will be set to 30 seconds."
+fi
+
+if [ $SBFSPOT_INTERVAL -gt 86400 ]; then
+    SBFSPOT_INTERVAL=86400;
+    echo "SBFSPOZ_INTERVAL is too long. IT will be set to 1 day."
 fi
 
 while [ TRUE ]; do
@@ -453,13 +458,12 @@ while [ TRUE ]; do
 
     # if QUIET SBFspot Option is set, produce less output
     if echo $sbfspot_options | grep -q "\-q"; then
-        DELTA=`expr 60 - $SBFSPOT_INTERVAL / 60`
-        if [ `date +%H` -eq 23 ] && [ `date +%M` -ge $DELTA ];then   # last entry of a day
-            if [ `date +%u` -eq 7 ];then   # sunday
+        if [ $(($(date +%s) - $(date -d 00:00 +%s))) -lt $SBFSPOT_INTERVAL ];then   # first entry of new day
+            if [ $(date +%u) -eq 1 ];then   # monday
 		echo -n "week "
-                date +%W\ %Y
+                date -d @$(($(date +%s) - 86400)) +%W\ %Y
             else                           # all other days
-                date +%a
+                date -d @$(($(date +%s) - 86400)) +%a   # Name of Yesterday
             fi
         else
             echo -n "."
