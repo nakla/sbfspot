@@ -448,12 +448,36 @@ fi
 
 if [ $SBFSPOT_INTERVAL -gt 86400 ]; then
     SBFSPOT_INTERVAL=86400;
-    echo "SBFSPOZ_INTERVAL is too long. IT will be set to 1 day."
+    echo "SBFSPOT_INTERVAL is too long. It will be set to 1 day."
 fi
 
 while [ TRUE ]; do
     if [ -n "$sbfspotbinary" ]; then
-	$homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg
+    	start_time=$(date +%s)
+	$homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg &   # start sbfspot in background
+ 	pid=$!
+
+ 	sbfspot_overtime=false
+  
+  	while kill -0 $pid 2>/dev/null; do
+   	    runtime=$(($(date +%s) - start_time))
+
+	    if ! $sbfspot_overtime; then
+     		sbfspot_overtime=true
+ 	    	if [ $runtime -ge $SBFSPOT_INTERVAL ]; then
+      		    echo "SBFspot has benn running for longer then $SBFSPOT_INTERVAL seconds and is still running."
+		    echo "Consider updating your SBFSPOT_INTERVAL variable."
+      		fi
+      	    fi
+	   
+	    if [ $runtime -ge $MAX_RUNTIME ]; then
+        	echo "SBFspot has been running for longer than $MAX_RUNTIME seconds. Terminating SBFspot."
+        	break
+    	    fi
+    	    sleep 10   # checking every 10 seconds if SBFspot is still running
+	done
+
+  	kill -9 $pid 2>/dev/null
     fi
 
     # if QUIET SBFspot Option is set, produce less output
