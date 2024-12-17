@@ -463,8 +463,8 @@ while [ TRUE ]; do
    	    runtime=$(($(date +%s) - start_time))
 
 	    if ! $sbfspot_overtime; then
-     		sbfspot_overtime=true
  	    	if [ $runtime -ge $SBFSPOT_INTERVAL ]; then
+       		    sbfspot_overtime=true
       		    echo "SBFspot has benn running for longer then $SBFSPOT_INTERVAL seconds and is still running."
 		    echo "Consider updating your SBFSPOT_INTERVAL variable."
       		fi
