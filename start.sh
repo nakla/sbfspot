@@ -1,8 +1,8 @@
 #!/bin/sh
 
-confdir=/etc/sbfspot
-homedir=/usr/local/bin/sbfspot.3
-datadir=/var/sbfspot
+readonly CONFDIR="/etc/sbfspot"
+readonly HOMEDIR="/usr/local/bin/sbfspot.3"
+readonly DATADIR="/var/sbfspot"
 sbfspotbinary=""
 sbfspotuploadbinary=""
 sbfspot_cfg_file=""
@@ -11,7 +11,7 @@ sbfspot_options=""
 
 getConfigValue() {
     key=$1
-    echo "$sbfspot_cfg_file" | grep -e "^$key=" | cut -f 2 -d "=" | sed 's/[ 	]*$//' # search for key, get value, delete invisible chars at the end
+    echo "$sbfspot_cfg_file" | grep -e "^$key=" | cut -f 2 -d "=" | sed 's/[    ]*$//' # search for key, get value, delete invisible chars at the end
 }
 
 setConfigValue() {
@@ -19,18 +19,18 @@ setConfigValue() {
     value=$2
     temp_value="$(getConfigValue "$key")"
     if [ -n "$temp_value" ]; then   # key found, so update new value
-        echo "$sbfspot_cfg_file" | sed "/^$key=.*/c $key=$value" > $confdir/SBFspot.cfg
+        echo "$sbfspot_cfg_file" | sed "/^$key=.*/c $key=$value" > $CONFDIR/SBFspot.cfg
     else
         temp_value="$(getConfigValue "#$key")"  # search for inactive key
         if [ -n "$temp_value" ]; then  # append key=value after the first match
-            echo "$sbfspot_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $confdir/SBFspot.cfg
+            echo "$sbfspot_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $CONFDIR/SBFspot.cfg
         else
             temp_value="$(getConfigValue "# $key")"   # no inactive key found, test again with space after hashtag
             if [ -n "$temp_value" ]; then  # append key=value after the first match
-                echo "$sbfspot_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $confdir/SBFspot.cfg
+                echo "$sbfspot_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $CONFDIR/SBFspot.cfg
             else
                 echo "Cannot find the option \"$key\" in SBFspot.cfg. Appending the option at the end of the file."
-                echo "$sbfspot_cfg_file" | sed "\$a $key=$value" > $confdir/SBFspot.cfg
+                echo "$sbfspot_cfg_file" | sed "\$a $key=$value" > $CONFDIR/SBFspot.cfg
             fi
         fi
     fi
@@ -38,12 +38,12 @@ setConfigValue() {
 }
 
 readConfig() {
-    sbfspot_cfg_file=$( cat $confdir/SBFspot.cfg | dos2unix -u )
+    sbfspot_cfg_file=$( cat $CONFDIR/SBFspot.cfg | dos2unix -u )
 }
 
 getUploadConfigValue() {
     key=$1
-    echo "$sbfspot_upload_cfg_file" | grep -e "^$key=" | cut -f 2 -d "=" | sed 's/[ 	]*$//' # search for key, get value, delete invisible chars at the end
+    echo "$sbfspot_upload_cfg_file" | grep -e "^$key=" | cut -f 2 -d "=" | sed 's/[     ]*$//' # search for key, get value, delete invisible chars at the end
 }
 
 setUploadConfigValue() {
@@ -51,18 +51,18 @@ setUploadConfigValue() {
     value=$2
     temp_value="$(getUploadConfigValue "$key")"
     if [ -n "$temp_value" ]; then   # key found, so update new value
-        echo "$sbfspot_upload_cfg_file" | sed "/^$key=.*/c $key=$value" > $confdir/SBFspotUpload.cfg
+        echo "$sbfspot_upload_cfg_file" | sed "/^$key=.*/c $key=$value" > $CONFDIR/SBFspotUpload.cfg
     else
         temp_value="$(getUploadConfigValue "#$key")"  # search for inactive key
         if [ -n "$temp_value" ]; then  # append key=value after the first match
-            echo "$sbfspot_upload_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $confdir/SBFspotUpload.cfg
+            echo "$sbfspot_upload_cfg_file" | sed "0,/^#$key/!b;//a$key=$value" > $CONFDIR/SBFspotUpload.cfg
         else
             temp_value="$(getUploadConfigValue "# $key")"   # no inactive key found, test again with space after hashtag
             if [ -n "$temp_value" ]; then  # append key=value after the first match
-                echo "$sbfspot_upload_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $confdir/SBFspotUpload.cfg
+                echo "$sbfspot_upload_cfg_file" | sed "0,/^# $key/!b;//a$key=$value" > $CONFDIR/SBFspotUpload.cfg
             else
                 echo "Cannot find the option \"$key\" in SBFspotUpload.cfg. Appending the option at the end of the file."
-                echo "$sbfspot_upload_cfg_file" | sed "\$a $key=$value" > $confdir/SBFspotUpload.cfg
+                echo "$sbfspot_upload_cfg_file" | sed "\$a $key=$value" > $CONFDIR/SBFspotUpload.cfg
             fi
         fi
     fi
@@ -70,165 +70,165 @@ setUploadConfigValue() {
 }
 
 readUploadConfig() {
-    sbfspot_upload_cfg_file=$( cat $confdir/SBFspotUpload.cfg | dos2unix -u )
+    sbfspot_upload_cfg_file=$(cat $CONFDIR/SBFspotUpload.cfg | dos2unix -u)
 }
 
 checkSBFConfig() {
     ERROR_FLAG=0
-	if `mount | grep -q -e "$confdir "`; then
-        if [ -r $confdir/SBFspot.cfg ]; then
+    if grep -qs "$CONFDIR " /proc/mounts; then
+        if [ -r "$CONFDIR/SBFspot.cfg" ]; then
             readConfig
-            if [ -n "$CSV_STORAGE" ] && [ $CSV_STORAGE -eq 1 ]; then
-                if [ `getConfigValue CSV_Export` -eq 0 ]; then
-                    if [ -w $confdir/SBFspot.cfg ]; then
+            if [ -n "$CSV_STORAGE" ] && [ "$CSV_STORAGE" -eq 1 ]; then
+                    if [ "$(getConfigValue CSV_Export)" -eq 0 ]; then
+                    if [ -w $CONFDIR/SBFspot.cfg ]; then
                         setConfigValue "CSV_Export" "1"
                         echo "Wrong CSV_Export value in SBFspot.cfg. I change it to 1."
                     else
-                        echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot`."
+                            echo "$CONFDIR/SBFspot.cfg is not writeable by User with ID $(id -u sbfspot)."
                         echo "Please change file permissions of SBFspot.cfg or ensure, that the \"CSV_Export\""
                         echo "value is 1"
                         ERROR_FLAG=1
                     fi
                 fi
             fi
-            if [ `getConfigValue CSV_Export` -eq 1 ]; then   # if CSV_Export=1 then OutputPath and OutputPathEvents must point to /var/sbfspot
-                if `mount | grep -q -e "$datadir "`; then
-                    if [ -w $confdir/SBFspot.cfg ]; then
-                        if ! `getConfigValue OutputPath | grep -q -e "^/var/sbfspot$"` && \
-                                ! `getConfigValue OutputPath | grep -q -e "^/var/sbfspot/"`; then    
-                            setConfigValue "OutputPath" "$datadir/%Y"
-                            echo "Wrong OutputPath value in SBFspot.cfg. I change it to \"$datadir/%Y\""
+            if [ "$(getConfigValue CSV_Export)" -eq 1 ]; then   # if CSV_Export=1 then OutputPath and OutputPathEvents must point to /var/sbfspot
+                if grep -qs "$DATADIR " /proc/mounts; then
+                    if [ -w $CONFDIR/SBFspot.cfg ]; then
+                            if ! getConfigValue OutputPath | grep -q -e "^/var/sbfspot$" && \
+                                    ! getConfigValue OutputPath | grep -q -e "^/var/sbfspot/"; then
+                            setConfigValue "OutputPath" "$DATADIR/%Y"
+                            echo "Wrong OutputPath value in SBFspot.cfg. I change it to \"$DATADIR/%Y\""
                         fi
 
-                        if ! `getConfigValue OutputPathEvents | grep -q -e "^/var/sbfspot$"` && \
-                                ! `getConfigValue OutputPathEvents | grep -q -e "^/var/sbfspot/"`; then
-                            setConfigValue "OutputPathEvents" "$datadir/%Y/Events"
-                            echo "Wrong OutputPathEvents value in SBFspot.cfg. I change it to \"$datadir/%Y/Events\""
+                        if ! getConfigValue OutputPathEvents | grep -q -e "^/var/sbfspot$" && \
+                                ! getConfigValue OutputPathEvents | grep -q -e "^/var/sbfspot/"; then
+                            setConfigValue "OutputPathEvents" "$DATADIR/%Y/Events"
+                            echo "Wrong OutputPathEvents value in SBFspot.cfg. I change it to \"$DATADIR/%Y/Events\""
                         fi
                     else
-                        echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot`."
+                            echo "$CONFDIR/SBFspot.cfg is not writeable by User with ID $(id -u sbfspot)."
                         echo "Please change file permissions of SBFspot.cfg or ensure, that the \"OutputPath\" and \"OutputPathEvents\" Options"
-                        echo "point to the Directory $datadir/..."
+                        echo "point to the Directory $DATADIR/..."
                         ERROR_FLAG=1
                     fi
                 else
-                    echo "$datadir is not mapped to a directory outside the container => csv files would not be persistant."
+                    echo "$DATADIR is not mapped to a directory outside the container => csv files would not be persistant."
                     echo "Please map the directory and restart the container."
                     exit 1
                 fi
-                
+
                 # check if data directory is writeable
-                if [ ! -w $datadir ]; then
-                    echo "Mapped Data directory is not writeable for user with ID `id -u sbfspot`."
+                if [ ! -w "$DATADIR" ]; then
+                    echo "Mapped Data directory is not writeable for user with ID $(id -u sbfspot)."
                     echo "Please change file permissions accordingly and restart the container."
                     exit 1
                 fi
             fi
-            if [ -n "$MQTT_ENABLE" ] && [ $MQTT_ENABLE -eq 1 ]; then
-                if ! `getConfigValue MQTT_Publisher | grep -q -e "^/usr/bin/mosquitto_pub"`; then
+            if [ -n "$MQTT_ENABLE" ] && [ "$MQTT_ENABLE" -eq 1 ]; then
+                    if ! getConfigValue MQTT_Publisher | grep -q -e "^/usr/bin/mosquitto_pub"; then
                     setConfigValue "MQTT_Publisher" "/usr/bin/mosquitto_pub"
                     echo "Wrong MQTT_Publisher value in SBFspot.cfg corrected."
                 fi
-                if `getConfigValue MQTT_Host | grep -q -e "^test.mosquitto.org"`; then
+                if getConfigValue MQTT_Host | grep -q -e "^test.mosquitto.org"; then
                     echo "Warning: Please configure the \"MQTT_Host\" value in SBFspot.cfg."
                 fi
             fi
             if [ "$DB_STORAGE" = "sqlite" ]; then
-                if `mount | grep -q -e "$datadir "`; then # check if data dir is mapped into the container 
-                    if [ ! -e $datadir/sbfspot.db ]; then # check if database file exists
-                        if [ -z "$INIT_DB" ] || [ $INIT_DB -ne 1 ]; then
-                            echo "SQLite database file under \"$datadir/sbfspot.db\" does not exist. Please initialize the database."
+                if grep -qs "$DATADIR " /proc/mounts; then # check if data dir is mapped into the container
+                    if [ ! -e "$DATADIR/sbfspot.db" ]; then # check if database file exists
+                        if [ -z "$INIT_DB" ] || [ "$INIT_DB" -ne 1 ]; then
+                            echo "SQLite database file under \"$DATADIR/sbfspot.db\" does not exist. Please initialize the database."
                             exit 1
                         fi
                     else
-                        if [ ! -w $datadir/sbfspot.db ]; then
-                            echo "SQLite database file under \"$datadir/sbfspot.db\" is not writeable for user with ID `id -u sbfspot`."
+                        if [ ! -w "$DATADIR/sbfspot.db" ]; then
+                                echo "SQLite database file under \"$DATADIR/sbfspot.db\" is not writeable for user with ID $(id -u sbfspot)."
                             echo "Please change file permissions accordingly and restart the container."
                             ERROR_FLAG=1
                         fi
-                        if [ ! -r $datadir/sbfspot.db ]; then
-                            echo "SQLite database file under \"$datadir/sbfspot.db\" is not readable for user with ID `id -u sbfspot`."
+                        if [ ! -r "$DATADIR/sbfspot.db" ]; then
+                                echo "SQLite database file under \"$DATADIR/sbfspot.db\" is not readable for user with ID $(id -u sbfspot)."
                             echo "Please change file permissions accordingly and restart the container."
                             ERROR_FLAG=1
                         fi
                     fi
                 else
-                    echo "$datadir is not mapped to a directory outside the container => database would not be persistant."
+                    echo "$DATADIR is not mapped to a directory outside the container => database would not be persistant."
                     echo "Please map the directory and restart the container."
                     exit 1
                 fi
-                
-                if [ -w $confdir/SBFspot.cfg ]; then # check if SQLite DB is correctly configured in SBFspot.cfg
-                    if ! `getConfigValue SQL_Database | grep -q -e "^$datadir/sbfspot.db"`; then    
-                        setConfigValue "SQL_Database" "$datadir/sbfspot.db"
-                        echo "Wrong SQL_Database value in SBFspot.cfg. I change it to \"$datadir/sbfspot.db\""
+
+                if [ -w "$CONFDIR/SBFspot.cfg" ]; then # check if SQLite DB is correctly configured in SBFspot.cfg
+                        if ! getConfigValue SQL_Database | grep -q -e "^$DATADIR/sbfspot.db"; then
+                        setConfigValue "SQL_Database" "$DATADIR/sbfspot.db"
+                        echo "Wrong SQL_Database value in SBFspot.cfg. I change it to \"$DATADIR/sbfspot.db\""
                     fi
                 else
-                    echo "$confdir/SBFspot.cfg is not writeable by User with ID `id -u sbfspot`."
+                        echo "$CONFDIR/SBFspot.cfg is not writeable by User with ID $(id -u sbfspot)."
                     echo "Please change file permissions of SBFspot.cfg or ensure, that the \"SQL_Database\" option"
-                    echo "points to the file $datadir/sbfspot.db"
+                    echo "points to the file $DATADIR/sbfspot.db"
                     ERROR_FLAG=1
                 fi
             fi
         else
-            echo "$confdir/SBFspot.cfg is not readable by user with ID `id -u sbfspot`."
+                echo "$CONFDIR/SBFspot.cfg is not readable by user with ID $(id -u sbfspot)."
             echo "Please change file permissions accordingly and restart the container."
             exit 1
         fi
     else
-        echo "$confdir is not mapped to a directory outside the container => Config file can't be read."
-		echo "Please map the directory and restart the container."
-		exit 1
+        echo "$CONFDIR is not mapped to a directory outside the container => Config file can't be read."
+                echo "Please map the directory and restart the container."
+                exit 1
     fi
-    
+
     if [ $ERROR_FLAG -eq 1 ]; then
         echo "Please configure the listed value(s) and restart the container."
         exit 1
     fi
 }
- 
+
 checkSBFUploadConfig() {
     ERROR_FLAG=0
-	if `mount | grep -q -e "$confdir "`; then
-        if [ -r $confdir/SBFspotUpload.cfg ]; then
+        if grep -qs "$CONFDIR " /proc/mounts; then
+        if [ -r "$CONFDIR/SBFspotUpload.cfg" ]; then
             readUploadConfig
-            tempValue=`getUploadConfigValue PVoutput_SID`
-            if [ -z $tempValue ];then
+            tempValue=$(getUploadConfigValue PVoutput_SID)
+            if [ -z "$tempValue" ];then
                 echo "Please set the \"PVoutput_SID\" option in \"SBFspotUpload.cfg\"."
                 echo "Otherwise the production data can't be uploaded to PVoutput."
                 ERROR_FLAG=1
             fi
-            tempValue=`getUploadConfigValue PVoutput_Key`
-            if [ -z $tempValue ];then
+            tempValue=$(getUploadConfigValue PVoutput_Key)
+            if [ -z "$tempValue" ];then
                 echo "Please set the \"PVoutput_Key\" option in \"SBFspotUpload.cfg\"."
                 echo "Otherwise the production data can't be uploaded to PVoutput."
                 ERROR_FLAG=1
             fi
-            
+
             if [ "$DB_STORAGE" = "sqlite" ]; then # check if SQLite DB is correctly configured in SBFspot.cfg
-                if ! `getUploadConfigValue SQL_Database | grep -q -e "^$datadir/sbfspot.db"`; then
-                    if [ -w $confdir/SBFspotUpload.cfg ]; then
-                        setUploadConfigValue "SQL_Database" "$datadir/sbfspot.db"
-                        echo "Wrong SQL_Database value in SBFspotUpload.cfg. I change it to \"$datadir/sbfspot.db\""
+                    if ! getUploadConfigValue SQL_Database | grep -q -e "^$DATADIR/sbfspot.db"; then
+                    if [ -w "$CONFDIR/SBFspotUpload.cfg" ]; then
+                        setUploadConfigValue "SQL_Database" "$DATADIR/sbfspot.db"
+                        echo "Wrong SQL_Database value in SBFspotUpload.cfg. I change it to \"$DATADIR/sbfspot.db\""
                     else
-                        echo "$confdir/SBFspotUpload.cfg is not writeable by User with ID `id -u sbfspot`."
+                            echo "$CONFDIR/SBFspotUpload.cfg is not writeable by User with ID $(id -u sbfspot)."
                         echo "Please change file permissions of SBFspotUpload.cfg or ensure, that the \"SQL_Database\" option"
-                        echo "points to the file $datadir/sbfspot.db"
+                        echo "points to the file $DATADIR/sbfspot.db"
                         ERROR_FLAG=1
                     fi
                 fi
             fi
         else
-            echo "$confdir/SBFspotUpload.cfg is not readable by user with ID `id -u sbfspot`."
+                echo "$CONFDIR/SBFspotUpload.cfg is not readable by user with ID $(id -u sbfspot)."
             echo "Please change file permissions accordingly and restart the container."
             exit 1
         fi
     else
-        echo "$confdir is not mapped to a directory outside the container => Config file can't be read."
-		echo "Please map the directory and restart the container."
-		exit 1
+        echo "$CONFDIR is not mapped to a directory outside the container => Config file can't be read."
+                echo "Please map the directory and restart the container."
+                exit 1
     fi
-    
+
     if [ $ERROR_FLAG -eq 1 ]; then
         echo "Please configure the listed value(s) and restart the container."
         exit 1
@@ -239,32 +239,32 @@ setupSBFspotOptions() {
     if [ -n "$SBFSPOT_ARGS" ]; then
         sbfspot_options=" $SBFSPOT_ARGS "
     fi
-    if [ -n "$FORCE" ] && [ $FORCE -eq 1 ]; then
+    if [ -n "$FORCE" ] && [ "$FORCE" -eq 1 ]; then
         sbfspot_options="$sbfspot_options -finq"
     fi
-    if [ -n "$FINQ" ] && [ $FINQ -eq 1 ]; then
+    if [ -n "$FINQ" ] && [ "$FINQ" -eq 1 ]; then
         sbfspot_options="$sbfspot_options -finq"
     fi
-    if [ -n "$QUIET" ] && [ $QUIET -eq 1 ]; then
+    if [ -n "$QUIET" ] && [ "$QUIET" -eq 1 ]; then
         sbfspot_options="$sbfspot_options -q"
     fi
-    if [ -n "$MQTT_ENABLE" ] && [ $MQTT_ENABLE -eq 1 ]; then
+    if [ -n "$MQTT_ENABLE" ] && [ "$MQTT_ENABLE" -eq 1 ]; then
         sbfspot_options="$sbfspot_options -mqtt"
     fi
 }
 
 initDatabase() {
     if [ "$DB_STORAGE" = "sqlite" ]; then
-        if `mount | grep -q -e "$datadir "`; then
+        if grep -qs "$DATADIR " /proc/mounts; then
             # check if data directory is writeable
-			if [ ! -w $datadir ]; then
-				echo "Mapped Data directory is not writeable for user with ID `id -u sbfspot`."
-				echo "Please change file permissions accordingly and restart the container."
-				exit 1
-			fi
-            sqlite3 $datadir/sbfspot.db < $homedir/CreateSQLiteDB.sql
+                        if [ ! -w "$DATADIR" ]; then
+                                echo "Mapped Data directory is not writeable for user with ID $(id -u sbfspot)."
+                                echo "Please change file permissions accordingly and restart the container."
+                                exit 1
+                        fi
+            sqlite3 "$DATADIR/sbfspot.db" < "$HOMEDIR/CreateSQLiteDB.sql"
         else
-            echo "$datadir is not mapped to a directory outside the container => database would not be persistant."
+            echo "$DATADIR is not mapped to a directory outside the container => database would not be persistant."
             echo "Please map the directory and restart the container."
             exit 1
         fi
@@ -275,7 +275,7 @@ initDatabase() {
         USER=$(getConfigValue SQL_Username)
         PW=$(getConfigValue SQL_Password)
         LOCAL_IP=$(ip ro show | grep 'docker0\|eth0' | awk '{print $(NF)}')
-        
+
         ERROR_FLAG=0
         if [ -z "$HOST" ]; then
             ERROR_FLAG=1
@@ -306,10 +306,10 @@ initDatabase() {
             exit 1
         fi
 
-        if `mysql -h $HOST --protocol=TCP -u $DB_ROOT_USER -p$DB_ROOT_PW < $homedir/CreateMySQLDB.sql`; then
+        if mysql -h "$HOST" --protocol=TCP -u "$DB_ROOT_USER" -p"$DB_ROOT_PW" < "$HOMEDIR/CreateMySQLDB.sql"; then
             echo "Database, tables and views created."
         else
-            cp $homedir/CreateMySQLDB.sql $datadir
+            cp "$HOMEDIR/CreateMySQLDB.sql" "$DATADIR"
             echo "Error creating SBFspot Database, tables and views. Please manually add the file \"CreateMySQLDB.sql\""
             echo "(located in SBFspots data directory) to your Database, if the Database does not exist yet."
         fi
@@ -317,24 +317,24 @@ initDatabase() {
         SQL_USER_CHANGE="ALTER USER '$USER'@'$LOCAL_IP' IDENTIFIED BY '$PW';"
         SQL_GRANT1="GRANT INSERT,SELECT,UPDATE ON SBFspot.* TO '$USER'@'$LOCAL_IP';"
         SQL_GRANT2="GRANT DELETE,INSERT,SELECT,UPDATE ON SBFspot.MonthData TO '$USER'@'$LOCAL_IP';"
-        
-        if `mysql -h $HOST --protocol=TCP -u $DB_ROOT_USER -p$DB_ROOT_PW -e "SELECT User FROM mysql.user;" | grep -q -e $USER`; then
+
+        if mysql -h "$HOST" --protocol=TCP -u "$DB_ROOT_USER" -p"$DB_ROOT_PW" -e "SELECT User FROM mysql.user;" | grep -q -e "$USER"; then
             echo "User $USER exists in Database, only changing password"
-            mysql -h $HOST --protocol=TCP -u $DB_ROOT_USER -p$DB_ROOT_PW -e "$SQL_USER_CHANGE"
+            mysql -h "$HOST" --protocol=TCP -u "$DB_ROOT_USER" -p"$DB_ROOT_PW" -e "$SQL_USER_CHANGE"
         else
-            if `mysql -h $HOST --protocol=TCP -u $DB_ROOT_USER -p$DB_ROOT_PW -e "$SQL_USER_ADD"`; then
+                if mysql -h "$HOST" --protocol=TCP -u "$DB_ROOT_USER" -p"$DB_ROOT_PW" -e "$SQL_USER_ADD"; then
                 echo "Database User created"
             fi
         fi
-        if `mysql -h $HOST --protocol=TCP -u $DB_ROOT_USER -p$DB_ROOT_PW -e "$SQL_GRANT1"`; then
+        if mysql -h "$HOST" --protocol=TCP -u "$DB_ROOT_USER" -p"$DB_ROOT_PW" -e "$SQL_GRANT1"; then
             echo "Following rights for User $USER set"
             echo "$SQL_GRANT1"
         fi
-        if `mysql -h $HOST --protocol=TCP -u $DB_ROOT_USER -p$DB_ROOT_PW -e "$SQL_GRANT2"`; then
+        if mysql -h "$HOST" --protocol=TCP -u "$DB_ROOT_USER" -p"$DB_ROOT_PW" -e "$SQL_GRANT2"; then
             echo "Following rights for User $USER set"
             echo "$SQL_GRANT2"
         fi
-	    exit 0
+            exit 0
     elif [ "$DB_STORAGE" != "sqlite" ] && [ "$DB_STORAGE" != "mysql" ] && [ "$DB_STORAGE" != "mariadb" ]; then
         echo "storage type \"$DB_STORAGE\" not available. Options: sqlite | mysql | mariadb"
         exit 1
@@ -342,7 +342,7 @@ initDatabase() {
 }
 
 selectSBFspotBinary() {
-    if [ -n "$ENABLE_SBFSPOT" ] && [ $ENABLE_SBFSPOT -ne 0 ]; then
+    if [ -n "$ENABLE_SBFSPOT" ] && [ "$ENABLE_SBFSPOT" -ne 0 ]; then
         if [ -z "$DB_STORAGE" ]; then
             sbfspotbinary=SBFspot_nosql
         elif [ "$DB_STORAGE" = "sqlite" ]; then
@@ -355,13 +355,13 @@ selectSBFspotBinary() {
             echo "storage type \"$DB_STORAGE\" not available. Options: sqlite | mysql | mariadb"
             exit 1
         fi
-        
+
         checkSBFConfig
     fi
 }
 
 selectSBFspotUploadBinary() {
-    if [ -n "$ENABLE_SBFSPOT_UPLOAD" ] && [ $ENABLE_SBFSPOT_UPLOAD -ne 0 ]; then
+    if [ -n "$ENABLE_SBFSPOT_UPLOAD" ] && [ "$ENABLE_SBFSPOT_UPLOAD" -ne 0 ]; then
         if [ "$DB_STORAGE" = "sqlite" ]; then
             sbfspotuploadbinary=SBFspotUploadDaemon_sqlite
         elif [ "$DB_STORAGE" = "mysql" ]; then
@@ -372,37 +372,37 @@ selectSBFspotUploadBinary() {
             echo "storage type \"$DB_STORAGE\" not available for SBFspotUploadDaemon. Options: sqlite | mysql | mariadb"
             exit 1
         fi
-        
+
         checkSBFUploadConfig
     fi
 }
 
 copyDefaultConf() {
-    if [ ! -e $confdir/SBFspot.default.cfg ]; then
-        cp $homedir/SBFspot.default.cfg $confdir 2>/dev/null
-        chmod 666 $confdir/SBFspot.default.cfg 2>/dev/null
+    if [ ! -e "$CONFDIR/SBFspot.default.cfg" ]; then
+        cp "$HOMEDIR/SBFspot.default.cfg" "$CONFDIR" 2>/dev/null
+        chmod 666 "$CONFDIR/SBFspot.default.cfg" 2>/dev/null
     fi
-    if [ ! -e $confdir/SBFspotUpload.default.cfg ]; then
-        cp $homedir/SBFspotUpload.default.cfg $confdir 2>/dev/null
-        chmod 666 $confdir/SBFspotUpload.default.cfg 2>/dev/null
+    if [ ! -e "$CONFDIR/SBFspotUpload.default.cfg" ]; then
+        cp "$HOMEDIR/SBFspotUpload.default.cfg" "$CONFDIR" 2>/dev/null
+        chmod 666 "$CONFDIR/SBFspotUpload.default.cfg" 2>/dev/null
     fi
 }
 
 checkStorageType() {
-    if [ -z "$DB_STORAGE" ] && ( [ -z "$CSV_STORAGE" ] || [ $CSV_STORAGE -ne 1 ] ) && ( [ -z "$MQTT_ENABLE" ] || [ $MQTT_ENABLE -ne 1 ] ); then
+    if [ -z "$DB_STORAGE" ] && { [ -z "$CSV_STORAGE" ] || [ "$CSV_STORAGE" -ne 1 ]; } && { [ -z "$MQTT_ENABLE" ] || [ "$MQTT_ENABLE" -ne 1 ]; }; then
         echo "Error, no Data Output is selected. Please configure at least one of the options: DB_STORAGE, CSV_STORAGE or MQTT_ENABLE"
         exit 1
     fi
 }
 
 checkNoServiceSelected() {
-    if ( [ -z "$ENABLE_SBFSPOT" ] || [ $ENABLE_SBFSPOT -eq 0 ] ) && ( [ -z "$ENABLE_SBFSPOT_UPLOAD" ] || [ $ENABLE_SBFSPOT_UPLOAD -eq 0 ] ); then
-        if ( [ -n "$INIT_DB" ] && [ $INIT_DB -ne 1 ] ); then
+    if { [ -z "$ENABLE_SBFSPOT" ] || [ "$ENABLE_SBFSPOT" -eq 0 ]; } && { [ -z "$ENABLE_SBFSPOT_UPLOAD" ] || [ "$ENABLE_SBFSPOT_UPLOAD" -eq 0 ]; }; then
+        if [ -n "$INIT_DB" ] && [ "$INIT_DB" -ne 1 ]; then
             echo "Warning: Neither SBFspot nor SBFspotUploadDaemon were enabled"
             echo "Enable at least one by setting ENABLE_SBFSPOT or ENABLE_SBFSPOT_UPLOAD environment variable to 1"
             exit 1
         else
-            checkSBFConfig   // if no service but $INIT_DB is selected, checkSBFConfig has to be called
+            checkSBFConfig   // if no service but "$INIT_DB" is selected, checkSBFConfig has to be called
         fi
     fi
 }
@@ -424,7 +424,7 @@ selectSBFspotBinary
 selectSBFspotUploadBinary
 
 # initialize Database
-if [ -n "$INIT_DB" ] && [ $INIT_DB -eq 1 ]; then
+if [ -n "$INIT_DB" ] && [ "$INIT_DB" -eq 1 ]; then
     initDatabase
 else
     if [ -n "$DB_ROOT_USER" ] || [ -n "$DB_ROOT_PW" ]; then
@@ -435,54 +435,54 @@ fi
 
 # Start SBFspotUploadDaemon in background
 if [ -n "$sbfspotuploadbinary" ]; then
-    $homedir/$sbfspotuploadbinary -c $confdir/SBFspotUpload.cfg &
+    "$HOMEDIR/$sbfspotuploadbinary" -c "$CONFDIR/SBFspotUpload.cfg" &
 fi
 
 # add Options to SBFspot cmdline
 setupSBFspotOptions
 
-if [ $SBFSPOT_INTERVAL -lt 30 ]; then
+if [ "$SBFSPOT_INTERVAL" -lt 30 ]; then
     SBFSPOT_INTERVAL=30;
     echo "SBFSPOT_INTERVAL is very short. It will be set to 30 seconds."
 fi
 
-if [ $SBFSPOT_INTERVAL -gt 86400 ]; then
+if [ "$SBFSPOT_INTERVAL" -gt 86400 ]; then
     SBFSPOT_INTERVAL=86400;
     echo "SBFSPOT_INTERVAL is too long. It will be set to 1 day."
 fi
 
-while [ TRUE ]; do
+while true; do
     if [ -n "$sbfspotbinary" ]; then
-    	start_time=$(date +%s)
-	$homedir/$sbfspotbinary $sbfspot_options -cfg$confdir/SBFspot.cfg &   # start sbfspot in background
- 	pid=$!
+        start_time=$(date +%s)
+        "$HOMEDIR/$sbfspotbinary" $sbfspot_options -cfg:"$CONFDIR/SBFspot.cfg" &   # start sbfspot in background
+        pid=$!
 
- 	sbfspot_overtime=false
-  
-  	while kill -0 $pid 2>/dev/null; do
-   	    runtime=$(($(date +%s) - start_time))
+        sbfspot_overtime=false
 
-	    if ! $sbfspot_overtime && [ $runtime -ge $SBFSPOT_INTERVAL ]; then
-       		sbfspot_overtime=true
-      		echo "SBFspot has benn running for longer then $SBFSPOT_INTERVAL seconds and is still running."
-		echo "Consider updating your SBFSPOT_INTERVAL variable."
-      	    fi
-	   
-	    if [ $runtime -ge $MAX_SBFSPOT_RUNTIME ]; then
-        	echo "SBFspot has been running for longer than $MAX_SBFSPOT_RUNTIME seconds. Terminating SBFspot."
-        	break
-    	    fi
-    	    sleep 10   # checking every 10 seconds if SBFspot is still running
-	done
+        while kill -0 $pid 2>/dev/null; do
+            runtime=$(($(date +%s) - start_time))
 
-  	kill -9 $pid 2>/dev/null
+            if ! $sbfspot_overtime && [ $runtime -ge $SBFSPOT_INTERVAL ]; then
+                sbfspot_overtime=true
+                echo "SBFspot has benn running for longer then $SBFSPOT_INTERVAL seconds and is still running."
+                echo "Consider updating your SBFSPOT_INTERVAL variable."
+            fi
+
+            if [ "$runtime" -ge "$MAX_SBFSPOT_RUNTIME" ]; then
+                echo "SBFspot has been running for longer than $MAX_SBFSPOT_RUNTIME seconds. Terminating SBFspot."
+                break
+            fi
+            sleep 10   # checking every 10 seconds if SBFspot is still running
+        done
+
+        kill -9 $pid 2>/dev/null
     fi
 
     # if QUIET SBFspot Option is set, produce less output
-    if echo $sbfspot_options | grep -q "\-q"; then
+    if echo "$sbfspot_options" | grep -q "\-q"; then
         if [ $(($(date +%s) - $(date -d 00:00 +%s))) -lt $SBFSPOT_INTERVAL ];then   # first entry of new day
-            if [ $(date +%u) -eq 1 ];then   # monday
-		echo -n "week "
+            if [ "$(date +%u)" -eq 1 ];then   # monday
+                echo -n "week "
                 date -d @$(($(date +%s) - 86400)) +%W\ %Y
             else                           # all other days
                 date -d @$(($(date +%s) - 86400)) +%a   # Name of Yesterday
@@ -491,8 +491,8 @@ while [ TRUE ]; do
             echo -n "."
         fi
     else
-	date
+        date
         echo "Sleeping $SBFSPOT_INTERVAL seconds."
     fi
-	sleep $SBFSPOT_INTERVAL
+        sleep $SBFSPOT_INTERVAL
 done
