@@ -12,6 +12,7 @@ services:
             ENABLE_SBFSPOT: 1
             SBFSPOT_INTERVAL: 600
             ENABLE_SBFSPOT_UPLOAD: 0
+            MAX_SBFSPOT_RUNTIME: 3600
             DB_STORAGE: sqlite
             CSV_STORAGE: 1
             MQTT_ENABLE: 1
