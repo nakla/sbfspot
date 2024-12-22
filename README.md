@@ -164,6 +164,7 @@ services:
             TZ: Europe/Berlin
             ENABLE_SBFSPOT: 1
             SBFSPOT_INTERVAL: 600
+            MAX_SBFSPOT_RUNTIME: 3600
             ENABLE_SBFSPOT_UPLOAD: 0
             DB_STORAGE: sqlite
             CSV_STORAGE: 1
